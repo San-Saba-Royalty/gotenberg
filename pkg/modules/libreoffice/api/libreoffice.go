@@ -19,6 +19,8 @@ import (
 type libreOffice interface {
 	gotenberg.Process
 	pdf(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error
+	// docx converts a document to DOCX using unoconverter with --format docx.
+	docx(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error
 }
 
 type libreOfficeArguments struct {
@@ -364,6 +366,41 @@ func (p *libreOfficeProcess) pdf(ctx context.Context, logger *zap.Logger, inputP
 	}
 
 	return fmt.Errorf("convert to PDF: %w", err)
+}
+
+// docx converts a document to DOCX using unoconverter with --format docx.
+// The unoconverter format registry natively registers 'docx' as an output
+// format (backing filter: 'Office Open XML Text'), so no additional
+// LibreOffice configuration is required.
+func (p *libreOfficeProcess) docx(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error {
+	if !p.isStarted.Load() {
+		return errors.New("LibreOffice not started, cannot handle DOCX conversion")
+	}
+
+	args := []string{
+		"--no-launch",
+		"--format",
+		"docx",
+		"--port",
+		fmt.Sprintf("%d", p.socketPort),
+		"--output",
+		outputPath,
+		inputPath,
+	}
+
+	cmd, err := gotenberg.CommandContext(ctx, logger, p.arguments.unoBinPath, args...)
+	if err != nil {
+		return fmt.Errorf("create uno command: %w", err)
+	}
+
+	logger.Debug(fmt.Sprintf("convert to DOCX: %s → %s", inputPath, outputPath))
+
+	_, err = cmd.Exec()
+	if err != nil {
+		return fmt.Errorf("convert to DOCX: %w", err)
+	}
+
+	return nil
 }
 
 // Interface guards.

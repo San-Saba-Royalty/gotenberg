@@ -15,6 +15,52 @@ import (
 	"github.com/gotenberg/gotenberg/v8/pkg/modules/pdfengines"
 )
 
+// docToDocxRoute returns an [api.Route] which converts a legacy .doc document
+// to .docx using LibreOffice. The route only accepts a single .doc file and
+// returns the converted .docx binary. It is intentionally simpler than
+// convertRoute because format-specific PDF options are not relevant here.
+func docToDocxRoute(libreOffice libreofficeapi.Uno) api.Route {
+	return api.Route{
+		Method:      http.MethodPost,
+		Path:        "/forms/libreoffice/doc-to-docx",
+		IsMultipart: true,
+		Handler: func(c echo.Context) error {
+			ctx := c.Get("context").(*api.Context)
+
+			var inputPaths []string
+			err := ctx.FormData().
+				MandatoryPaths([]string{".doc"}, &inputPaths).
+				Validate()
+			if err != nil {
+				return fmt.Errorf("validate form data: %w", err)
+			}
+
+			outputPath := ctx.GeneratePath(".docx")
+
+			err = libreOffice.Docx(ctx, ctx.Log(), inputPaths[0], outputPath)
+			if err != nil {
+				if errors.Is(err, libreofficeapi.ErrUnoException) {
+					return api.WrapError(
+						fmt.Errorf("convert to DOCX: %w", err),
+						api.NewSentinelHttpError(
+							http.StatusBadRequest,
+							"LibreOffice failed to process the document — it may be malformed or password-protected.",
+						),
+					)
+				}
+				return fmt.Errorf("convert to DOCX: %w", err)
+			}
+
+			err = ctx.AddOutputPaths(outputPath)
+			if err != nil {
+				return fmt.Errorf("add output path: %w", err)
+			}
+
+			return nil
+		},
+	}
+}
+
 // convertRoute returns an [api.Route] which can convert LibreOffice documents
 // to PDF.
 func convertRoute(libreOffice libreofficeapi.Uno, engine gotenberg.PdfEngine) api.Route {

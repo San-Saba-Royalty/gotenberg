@@ -188,6 +188,8 @@ func DefaultOptions() Options {
 // Uno is an abstraction on top of the Universal Network Objects API.
 type Uno interface {
 	Pdf(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error
+	// Docx converts a legacy document (e.g., .doc) to .docx using LibreOffice.
+	Docx(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error
 	Extensions() []string
 }
 
@@ -420,6 +422,19 @@ func (a *Api) Pdf(ctx context.Context, logger *zap.Logger, inputPath, outputPath
 	return fmt.Errorf("supervisor run task: %w", err)
 }
 
+// Docx converts a legacy document (e.g., .doc) to .docx using LibreOffice.
+// It runs through the supervisor queue so that concurrent requests are
+// serialized and LibreOffice restarts are handled transparently.
+func (a *Api) Docx(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error {
+	err := a.supervisor.Run(ctx, logger, func() error {
+		return a.libreOffice.docx(ctx, logger, inputPath, outputPath)
+	})
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("supervisor run task: %w", err)
+}
+
 // Extensions returns the file extensions available for conversions.
 // FIXME: don't care, take all on the route level?
 func (a *Api) Extensions() []string {
@@ -569,3 +584,4 @@ var (
 	_ Uno                       = (*Api)(nil)
 	_ Provider                  = (*Api)(nil)
 )
+

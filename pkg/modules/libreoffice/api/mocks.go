@@ -12,11 +12,17 @@ import (
 // ApiMock is a mock for the [Uno] interface.
 type ApiMock struct {
 	PdfMock        func(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error
+	DocxMock       func(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error
 	ExtensionsMock func() []string
 }
 
 func (api *ApiMock) Pdf(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error {
 	return api.PdfMock(ctx, logger, inputPath, outputPath, options)
+}
+
+// Docx converts a document to DOCX using the mock implementation.
+func (api *ApiMock) Docx(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error {
+	return api.DocxMock(ctx, logger, inputPath, outputPath)
 }
 
 func (api *ApiMock) Extensions() []string {
@@ -37,7 +43,8 @@ type libreOfficeMock struct {
 	errCoreDumpedCount int
 
 	gotenberg.ProcessMock
-	pdfMock func(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error
+	pdfMock  func(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error
+	docxMock func(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error
 }
 
 func (b *libreOfficeMock) pdf(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error {
@@ -49,6 +56,13 @@ func (b *libreOfficeMock) pdf(ctx context.Context, logger *zap.Logger, inputPath
 		return nil
 	}
 	return err
+}
+
+func (b *libreOfficeMock) docx(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error {
+	if b.docxMock != nil {
+		return b.docxMock(ctx, logger, inputPath, outputPath)
+	}
+	return nil
 }
 
 // Interface guards.
