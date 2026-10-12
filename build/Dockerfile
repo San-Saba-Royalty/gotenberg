@@ -213,8 +213,10 @@ RUN \
     # Install LibreOffice & unoconverter. \
     echo "deb http://deb.debian.org/debian trixie-backports main" >> /etc/apt/sources.list &&\
     apt-get update -qq &&\
-    apt-get upgrade -yqq &&\
-    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends -t trixie-backports libreoffice &&\
+    # NOTE: no `apt-get upgrade` here — upgrading libreoffice-common from trixie \
+    # installs a version that Breaks libreoffice-core (>= 4:25.8~) required by \
+    # trixie-backports libreoffice, making the solver fail with exit code 100. \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends -t trixie-backports libreoffice libreoffice-common python3-uno &&\
     curl -Ls https://raw.githubusercontent.com/gotenberg/unoconverter/v0.2.0/unoconv -o /usr/bin/unoconverter &&\
     chmod +x /usr/bin/unoconverter &&\
     # unoconverter will look for the Python binary, which has to be at version 3.
