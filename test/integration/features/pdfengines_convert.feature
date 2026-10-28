@@ -93,7 +93,7 @@ Feature: /forms/pdfengines/convert
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      At least one PDF engine cannot process the requested PDF format, while others may have failed to convert due to different issues
+      The requested PDF format is not supported, or no PDF engine could apply it. Valid formats include PDF/A-1b, PDF/A-2b, PDF/A-3b, PDF/A-4, and PDF/UA.
       """
     When I make a "POST" request to Gotenberg at the "/forms/pdfengines/convert" endpoint with the following form data and header(s):
       | files | testdata/page_1.pdf | file  |
@@ -115,7 +115,7 @@ Feature: /forms/pdfengines/convert
     Then the response header "Content-Type" should be "application/pdf"
     Then the response header "Gotenberg-Trace" should be "forms_pdfengines_convert"
     Then the Gotenberg container should log the following entries:
-      | "trace":"forms_pdfengines_convert" |
+      | "correlation_id":"forms_pdfengines_convert" |
 
   @output-filename
   Scenario: POST /forms/pdfengines/convert (Output Filename - Single PDF)

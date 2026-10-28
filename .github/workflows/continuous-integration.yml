@@ -21,32 +21,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
       - name: Run linters
         uses: golangci/golangci-lint-action@v9
         with:
-          version: v2.10.1
+          version: v2.15.0
 
   lint-prettier:
     name: Lint non-Golang codebase
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
 
       - name: Install Dependencies
-        run: npm i
+        run: npm ci --ignore-scripts
 
       - name: Run linters
         run: make lint-prettier
@@ -59,10 +59,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
@@ -77,11 +77,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tags: ${{ steps.build_test_push.outputs.tags }}
+      tags_chromium: ${{ steps.build_test_push.outputs.tags_chromium }}
+      tags_libreoffice: ${{ steps.build_test_push.outputs.tags_libreoffice }}
       tags_cloud_run: ${{ steps.build_test_push.outputs.tags_cloud_run }}
+      tags_cloud_run_chromium: ${{ steps.build_test_push.outputs.tags_cloud_run_chromium }}
+      tags_cloud_run_libreoffice: ${{ steps.build_test_push.outputs.tags_cloud_run_libreoffice }}
       tags_aws_lambda: ${{ steps.build_test_push.outputs.tags_aws_lambda }}
+      tags_aws_lambda_chromium: ${{ steps.build_test_push.outputs.tags_aws_lambda_chromium }}
+      tags_aws_lambda_libreoffice: ${{ steps.build_test_push.outputs.tags_aws_lambda_libreoffice }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build, test and push
         id: build_test_push
@@ -101,11 +107,17 @@ jobs:
     runs-on: ubuntu-24.04-ppc64le
     outputs:
       tags: ${{ steps.build_test_push.outputs.tags }}
+      tags_chromium: ${{ steps.build_test_push.outputs.tags_chromium }}
+      tags_libreoffice: ${{ steps.build_test_push.outputs.tags_libreoffice }}
       tags_cloud_run: ${{ steps.build_test_push.outputs.tags_cloud_run }}
+      tags_cloud_run_chromium: ${{ steps.build_test_push.outputs.tags_cloud_run_chromium }}
+      tags_cloud_run_libreoffice: ${{ steps.build_test_push.outputs.tags_cloud_run_libreoffice }}
       tags_aws_lambda: ${{ steps.build_test_push.outputs.tags_aws_lambda }}
+      tags_aws_lambda_chromium: ${{ steps.build_test_push.outputs.tags_aws_lambda_chromium }}
+      tags_aws_lambda_libreoffice: ${{ steps.build_test_push.outputs.tags_aws_lambda_libreoffice }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build, test and push
         id: build_test_push
@@ -125,11 +137,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tags: ${{ steps.build_test_push.outputs.tags }}
+      tags_chromium: ${{ steps.build_test_push.outputs.tags_chromium }}
+      tags_libreoffice: ${{ steps.build_test_push.outputs.tags_libreoffice }}
       tags_cloud_run: ${{ steps.build_test_push.outputs.tags_cloud_run }}
+      tags_cloud_run_chromium: ${{ steps.build_test_push.outputs.tags_cloud_run_chromium }}
+      tags_cloud_run_libreoffice: ${{ steps.build_test_push.outputs.tags_cloud_run_libreoffice }}
       tags_aws_lambda: ${{ steps.build_test_push.outputs.tags_aws_lambda }}
+      tags_aws_lambda_chromium: ${{ steps.build_test_push.outputs.tags_aws_lambda_chromium }}
+      tags_aws_lambda_libreoffice: ${{ steps.build_test_push.outputs.tags_aws_lambda_libreoffice }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build, test and push
         id: build_test_push
@@ -149,11 +167,17 @@ jobs:
     runs-on: ubuntu-24.04-arm
     outputs:
       tags: ${{ steps.build_test_push.outputs.tags }}
+      tags_chromium: ${{ steps.build_test_push.outputs.tags_chromium }}
+      tags_libreoffice: ${{ steps.build_test_push.outputs.tags_libreoffice }}
       tags_cloud_run: ${{ steps.build_test_push.outputs.tags_cloud_run }}
+      tags_cloud_run_chromium: ${{ steps.build_test_push.outputs.tags_cloud_run_chromium }}
+      tags_cloud_run_libreoffice: ${{ steps.build_test_push.outputs.tags_cloud_run_libreoffice }}
       tags_aws_lambda: ${{ steps.build_test_push.outputs.tags_aws_lambda }}
+      tags_aws_lambda_chromium: ${{ steps.build_test_push.outputs.tags_aws_lambda_chromium }}
+      tags_aws_lambda_libreoffice: ${{ steps.build_test_push.outputs.tags_aws_lambda_libreoffice }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build, test and push
         id: build_test_push
@@ -173,11 +197,17 @@ jobs:
     runs-on: ubuntu-24.04-arm
     outputs:
       tags: ${{ steps.build_test_push.outputs.tags }}
+      tags_chromium: ${{ steps.build_test_push.outputs.tags_chromium }}
+      tags_libreoffice: ${{ steps.build_test_push.outputs.tags_libreoffice }}
       tags_cloud_run: ${{ steps.build_test_push.outputs.tags_cloud_run }}
+      tags_cloud_run_chromium: ${{ steps.build_test_push.outputs.tags_cloud_run_chromium }}
+      tags_cloud_run_libreoffice: ${{ steps.build_test_push.outputs.tags_cloud_run_libreoffice }}
       tags_aws_lambda: ${{ steps.build_test_push.outputs.tags_aws_lambda }}
+      tags_aws_lambda_chromium: ${{ steps.build_test_push.outputs.tags_aws_lambda_chromium }}
+      tags_aws_lambda_libreoffice: ${{ steps.build_test_push.outputs.tags_aws_lambda_libreoffice }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build, test and push
         id: build_test_push
@@ -223,7 +253,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Merge
         uses: ./.github/actions/merge
@@ -232,6 +262,20 @@ jobs:
           docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
           tags: "${{ needs.snapshot_amd64.outputs.tags }},${{ needs.snapshot_386.outputs.tags }},${{ needs.snapshot_ppc64le.outputs.tags }},${{ needs.snapshot_arm64.outputs.tags }},${{ needs.snapshot_arm_v7.outputs.tags }}"
 
+      - name: Merge Chromium
+        uses: ./.github/actions/merge
+        with:
+          docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          tags: "${{ needs.snapshot_amd64.outputs.tags_chromium }},${{ needs.snapshot_386.outputs.tags_chromium }},${{ needs.snapshot_ppc64le.outputs.tags_chromium }},${{ needs.snapshot_arm64.outputs.tags_chromium }},${{ needs.snapshot_arm_v7.outputs.tags_chromium }}"
+
+      - name: Merge LibreOffice
+        uses: ./.github/actions/merge
+        with:
+          docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          tags: "${{ needs.snapshot_amd64.outputs.tags_libreoffice }},${{ needs.snapshot_386.outputs.tags_libreoffice }},${{ needs.snapshot_ppc64le.outputs.tags_libreoffice }},${{ needs.snapshot_arm64.outputs.tags_libreoffice }},${{ needs.snapshot_arm_v7.outputs.tags_libreoffice }}"
+
       - name: Merge AWS Lambda
         uses: ./.github/actions/merge
         with:
@@ -239,12 +283,26 @@ jobs:
           docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
           tags: "${{ needs.snapshot_amd64.outputs.tags_aws_lambda }},${{ needs.snapshot_arm64.outputs.tags_aws_lambda }}"
 
+      - name: Merge AWS Lambda Chromium
+        uses: ./.github/actions/merge
+        with:
+          docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          tags: "${{ needs.snapshot_amd64.outputs.tags_aws_lambda_chromium }},${{ needs.snapshot_arm64.outputs.tags_aws_lambda_chromium }}"
+
+      - name: Merge AWS Lambda LibreOffice
+        uses: ./.github/actions/merge
+        with:
+          docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          tags: "${{ needs.snapshot_amd64.outputs.tags_aws_lambda_libreoffice }},${{ needs.snapshot_arm64.outputs.tags_aws_lambda_libreoffice }}"
+
       - name: Clean
         uses: ./.github/actions/clean
         with:
           docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
-          tags: "${{ needs.snapshot_amd64.outputs.tags }},${{ needs.snapshot_386.outputs.tags }},${{ needs.snapshot_ppc64le.outputs.tags }},${{ needs.snapshot_arm64.outputs.tags }},${{ needs.snapshot_arm_v7.outputs.tags }},${{ needs.snapshot_amd64.outputs.tags_aws_lambda }},${{ needs.snapshot_arm64.outputs.tags_aws_lambda }}"
+          tags: "${{ needs.snapshot_amd64.outputs.tags }},${{ needs.snapshot_386.outputs.tags }},${{ needs.snapshot_ppc64le.outputs.tags }},${{ needs.snapshot_arm64.outputs.tags }},${{ needs.snapshot_arm_v7.outputs.tags }},${{ needs.snapshot_amd64.outputs.tags_chromium }},${{ needs.snapshot_386.outputs.tags_chromium }},${{ needs.snapshot_ppc64le.outputs.tags_chromium }},${{ needs.snapshot_arm64.outputs.tags_chromium }},${{ needs.snapshot_arm_v7.outputs.tags_chromium }},${{ needs.snapshot_amd64.outputs.tags_libreoffice }},${{ needs.snapshot_386.outputs.tags_libreoffice }},${{ needs.snapshot_ppc64le.outputs.tags_libreoffice }},${{ needs.snapshot_arm64.outputs.tags_libreoffice }},${{ needs.snapshot_arm_v7.outputs.tags_libreoffice }},${{ needs.snapshot_amd64.outputs.tags_aws_lambda }},${{ needs.snapshot_arm64.outputs.tags_aws_lambda }},${{ needs.snapshot_amd64.outputs.tags_aws_lambda_chromium }},${{ needs.snapshot_arm64.outputs.tags_aws_lambda_chromium }},${{ needs.snapshot_amd64.outputs.tags_aws_lambda_libreoffice }},${{ needs.snapshot_arm64.outputs.tags_aws_lambda_libreoffice }}"
 
   edge_amd64:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -254,11 +312,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tags: ${{ steps.build_test_push.outputs.tags }}
+      tags_chromium: ${{ steps.build_test_push.outputs.tags_chromium }}
+      tags_libreoffice: ${{ steps.build_test_push.outputs.tags_libreoffice }}
       tags_cloud_run: ${{ steps.build_test_push.outputs.tags_cloud_run }}
+      tags_cloud_run_chromium: ${{ steps.build_test_push.outputs.tags_cloud_run_chromium }}
+      tags_cloud_run_libreoffice: ${{ steps.build_test_push.outputs.tags_cloud_run_libreoffice }}
       tags_aws_lambda: ${{ steps.build_test_push.outputs.tags_aws_lambda }}
+      tags_aws_lambda_chromium: ${{ steps.build_test_push.outputs.tags_aws_lambda_chromium }}
+      tags_aws_lambda_libreoffice: ${{ steps.build_test_push.outputs.tags_aws_lambda_libreoffice }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build, test and push
         id: build_test_push
@@ -277,11 +341,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tags: ${{ steps.build_test_push.outputs.tags }}
+      tags_chromium: ${{ steps.build_test_push.outputs.tags_chromium }}
+      tags_libreoffice: ${{ steps.build_test_push.outputs.tags_libreoffice }}
       tags_cloud_run: ${{ steps.build_test_push.outputs.tags_cloud_run }}
+      tags_cloud_run_chromium: ${{ steps.build_test_push.outputs.tags_cloud_run_chromium }}
+      tags_cloud_run_libreoffice: ${{ steps.build_test_push.outputs.tags_cloud_run_libreoffice }}
       tags_aws_lambda: ${{ steps.build_test_push.outputs.tags_aws_lambda }}
+      tags_aws_lambda_chromium: ${{ steps.build_test_push.outputs.tags_aws_lambda_chromium }}
+      tags_aws_lambda_libreoffice: ${{ steps.build_test_push.outputs.tags_aws_lambda_libreoffice }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build, test and push
         id: build_test_push
@@ -300,11 +370,17 @@ jobs:
     runs-on: ubuntu-24.04-ppc64le
     outputs:
       tags: ${{ steps.build_test_push.outputs.tags }}
+      tags_chromium: ${{ steps.build_test_push.outputs.tags_chromium }}
+      tags_libreoffice: ${{ steps.build_test_push.outputs.tags_libreoffice }}
       tags_cloud_run: ${{ steps.build_test_push.outputs.tags_cloud_run }}
+      tags_cloud_run_chromium: ${{ steps.build_test_push.outputs.tags_cloud_run_chromium }}
+      tags_cloud_run_libreoffice: ${{ steps.build_test_push.outputs.tags_cloud_run_libreoffice }}
       tags_aws_lambda: ${{ steps.build_test_push.outputs.tags_aws_lambda }}
+      tags_aws_lambda_chromium: ${{ steps.build_test_push.outputs.tags_aws_lambda_chromium }}
+      tags_aws_lambda_libreoffice: ${{ steps.build_test_push.outputs.tags_aws_lambda_libreoffice }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build, test and push
         id: build_test_push
@@ -323,11 +399,17 @@ jobs:
     runs-on: ubuntu-24.04-arm
     outputs:
       tags: ${{ steps.build_test_push.outputs.tags }}
+      tags_chromium: ${{ steps.build_test_push.outputs.tags_chromium }}
+      tags_libreoffice: ${{ steps.build_test_push.outputs.tags_libreoffice }}
       tags_cloud_run: ${{ steps.build_test_push.outputs.tags_cloud_run }}
+      tags_cloud_run_chromium: ${{ steps.build_test_push.outputs.tags_cloud_run_chromium }}
+      tags_cloud_run_libreoffice: ${{ steps.build_test_push.outputs.tags_cloud_run_libreoffice }}
       tags_aws_lambda: ${{ steps.build_test_push.outputs.tags_aws_lambda }}
+      tags_aws_lambda_chromium: ${{ steps.build_test_push.outputs.tags_aws_lambda_chromium }}
+      tags_aws_lambda_libreoffice: ${{ steps.build_test_push.outputs.tags_aws_lambda_libreoffice }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build, test and push
         id: build_test_push
@@ -346,11 +428,17 @@ jobs:
     runs-on: ubuntu-24.04-arm
     outputs:
       tags: ${{ steps.build_test_push.outputs.tags }}
+      tags_chromium: ${{ steps.build_test_push.outputs.tags_chromium }}
+      tags_libreoffice: ${{ steps.build_test_push.outputs.tags_libreoffice }}
       tags_cloud_run: ${{ steps.build_test_push.outputs.tags_cloud_run }}
+      tags_cloud_run_chromium: ${{ steps.build_test_push.outputs.tags_cloud_run_chromium }}
+      tags_cloud_run_libreoffice: ${{ steps.build_test_push.outputs.tags_cloud_run_libreoffice }}
       tags_aws_lambda: ${{ steps.build_test_push.outputs.tags_aws_lambda }}
+      tags_aws_lambda_chromium: ${{ steps.build_test_push.outputs.tags_aws_lambda_chromium }}
+      tags_aws_lambda_libreoffice: ${{ steps.build_test_push.outputs.tags_aws_lambda_libreoffice }}
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build, test and push
         id: build_test_push
@@ -372,7 +460,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Merge
         uses: ./.github/actions/merge
@@ -380,7 +468,20 @@ jobs:
           docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
           tags: "${{ needs.edge_amd64.outputs.tags }},${{ needs.edge_386.outputs.tags }},${{ needs.edge_ppc64le.outputs.tags }},${{ needs.edge_arm64.outputs.tags }},${{ needs.edge_arm_v7.outputs.tags }}"
-          alternate_registry: thecodingmachine
+
+      - name: Merge Chromium
+        uses: ./.github/actions/merge
+        with:
+          docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          tags: "${{ needs.edge_amd64.outputs.tags_chromium }},${{ needs.edge_386.outputs.tags_chromium }},${{ needs.edge_ppc64le.outputs.tags_chromium }},${{ needs.edge_arm64.outputs.tags_chromium }},${{ needs.edge_arm_v7.outputs.tags_chromium }}"
+
+      - name: Merge LibreOffice
+        uses: ./.github/actions/merge
+        with:
+          docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          tags: "${{ needs.edge_amd64.outputs.tags_libreoffice }},${{ needs.edge_386.outputs.tags_libreoffice }},${{ needs.edge_ppc64le.outputs.tags_libreoffice }},${{ needs.edge_arm64.outputs.tags_libreoffice }},${{ needs.edge_arm_v7.outputs.tags_libreoffice }}"
 
       - name: Merge AWS Lambda
         uses: ./.github/actions/merge
@@ -388,11 +489,24 @@ jobs:
           docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
           tags: "${{ needs.edge_amd64.outputs.tags_aws_lambda }},${{ needs.edge_arm64.outputs.tags_aws_lambda }}"
-          alternate_registry: thecodingmachine
+
+      - name: Merge AWS Lambda Chromium
+        uses: ./.github/actions/merge
+        with:
+          docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          tags: "${{ needs.edge_amd64.outputs.tags_aws_lambda_chromium }},${{ needs.edge_arm64.outputs.tags_aws_lambda_chromium }}"
+
+      - name: Merge AWS Lambda LibreOffice
+        uses: ./.github/actions/merge
+        with:
+          docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
+          docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
+          tags: "${{ needs.edge_amd64.outputs.tags_aws_lambda_libreoffice }},${{ needs.edge_arm64.outputs.tags_aws_lambda_libreoffice }}"
 
       - name: Clean
         uses: ./.github/actions/clean
         with:
           docker_hub_username: ${{ secrets.DOCKERHUB_USERNAME }}
           docker_hub_password: ${{ secrets.DOCKERHUB_TOKEN }}
-          tags: "${{ needs.edge_amd64.outputs.tags }},${{ needs.edge_386.outputs.tags }},${{ needs.edge_ppc64le.outputs.tags }},${{ needs.edge_arm64.outputs.tags }},${{ needs.edge_arm_v7.outputs.tags }},${{ needs.edge_amd64.outputs.tags_aws_lambda }},${{ needs.edge_arm64.outputs.tags_aws_lambda }}"
+          tags: "${{ needs.edge_amd64.outputs.tags }},${{ needs.edge_386.outputs.tags }},${{ needs.edge_ppc64le.outputs.tags }},${{ needs.edge_arm64.outputs.tags }},${{ needs.edge_arm_v7.outputs.tags }},${{ needs.edge_amd64.outputs.tags_chromium }},${{ needs.edge_386.outputs.tags_chromium }},${{ needs.edge_ppc64le.outputs.tags_chromium }},${{ needs.edge_arm64.outputs.tags_chromium }},${{ needs.edge_arm_v7.outputs.tags_chromium }},${{ needs.edge_amd64.outputs.tags_libreoffice }},${{ needs.edge_386.outputs.tags_libreoffice }},${{ needs.edge_ppc64le.outputs.tags_libreoffice }},${{ needs.edge_arm64.outputs.tags_libreoffice }},${{ needs.edge_arm_v7.outputs.tags_libreoffice }},${{ needs.edge_amd64.outputs.tags_aws_lambda }},${{ needs.edge_arm64.outputs.tags_aws_lambda }},${{ needs.edge_amd64.outputs.tags_aws_lambda_chromium }},${{ needs.edge_arm64.outputs.tags_aws_lambda_chromium }},${{ needs.edge_amd64.outputs.tags_aws_lambda_libreoffice }},${{ needs.edge_arm64.outputs.tags_aws_lambda_libreoffice }}"

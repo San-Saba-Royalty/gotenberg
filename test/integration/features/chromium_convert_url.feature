@@ -22,6 +22,60 @@ Feature: /forms/chromium/convert/url
       Page 1
       """
 
+  # Each conversion runs in its own browser context, so localStorage never
+  # carries over.
+  Scenario: POST /forms/chromium/convert/url (localStorage isolated per conversion)
+    Given I have a default Gotenberg container
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url                       | http://host.docker.internal:%d/html/testdata/local-storage-html/index.html | field  |
+      | Gotenberg-Output-Filename | foo                                                                        | header |
+    Then the response status code should be 200
+    Then the "foo.pdf" PDF should have content matching "localStorageCount=1" at page 1
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url                       | http://host.docker.internal:%d/html/testdata/local-storage-html/index.html | field  |
+      | Gotenberg-Output-Filename | foo                                                                        | header |
+    Then the response status code should be 200
+    Then the "foo.pdf" PDF should have content matching "localStorageCount=1" at page 1
+
+  # With --chromium-shared-browser-context, localStorage is per-origin and
+  # shared by the long-lived browser, so without clearing it accumulates
+  # across same-origin conversions.
+  # See https://github.com/gotenberg/gotenberg/issues/919.
+  Scenario: POST /forms/chromium/convert/url (localStorage leaks in a shared browser context)
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_SHARED_BROWSER_CONTEXT | true |
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url                       | http://host.docker.internal:%d/html/testdata/local-storage-html/index.html | field  |
+      | Gotenberg-Output-Filename | foo                                                                        | header |
+    Then the response status code should be 200
+    Then the "foo.pdf" PDF should have content matching "localStorageCount=1" at page 1
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url                       | http://host.docker.internal:%d/html/testdata/local-storage-html/index.html | field  |
+      | Gotenberg-Output-Filename | foo                                                                        | header |
+    Then the response status code should be 200
+    Then the "foo.pdf" PDF should have content matching "localStorageCount=2" at page 1
+
+  # With --chromium-clear-storage every conversion in a shared browser context
+  # clears the origin's localStorage first, so the counter never carries over.
+  # See https://github.com/gotenberg/gotenberg/issues/919.
+  Scenario: POST /forms/chromium/convert/url (Clear Storage)
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_SHARED_BROWSER_CONTEXT | true |
+      | CHROMIUM_CLEAR_STORAGE          | true |
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url                       | http://host.docker.internal:%d/html/testdata/local-storage-html/index.html | field  |
+      | Gotenberg-Output-Filename | foo                                                                        | header |
+    Then the response status code should be 200
+    Then the "foo.pdf" PDF should have content matching "localStorageCount=1" at page 1
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url                       | http://host.docker.internal:%d/html/testdata/local-storage-html/index.html | field  |
+      | Gotenberg-Output-Filename | foo                                                                        | header |
+    Then the response status code should be 200
+    Then the "foo.pdf" PDF should have content matching "localStorageCount=1" at page 1
+
   Scenario: POST /forms/chromium/convert/url (Single Page)
     Given I have a default Gotenberg container
     Given I have a static server
@@ -174,6 +228,36 @@ Feature: /forms/chromium/convert/url
       | foo.pdf |
     Then the server request cookie "cookie_1" should be "foo"
     Then the server request cookie "cookie_2" should be ""
+
+  # A cookie set by one conversion must not reach the next one.
+  Scenario: POST /forms/chromium/convert/url (Cookies isolated per conversion)
+    Given I have a default Gotenberg container
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url     | http://host.docker.internal:%d/html/testdata/page-1-html/index.html    | field |
+      | cookies | [{"name":"cookie_1","value":"foo","domain":"host.docker.internal:%d"}] | field |
+    Then the response status code should be 200
+    Then the server request cookie "cookie_1" should be "foo"
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url | http://host.docker.internal:%d/html/testdata/page-1-html/index.html | field |
+    Then the response status code should be 200
+    Then the server request cookie "cookie_1" should be ""
+
+  # With --chromium-shared-browser-context, cookies carry over between
+  # conversions.
+  Scenario: POST /forms/chromium/convert/url (Cookies in a shared browser context)
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_SHARED_BROWSER_CONTEXT | true |
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url     | http://host.docker.internal:%d/html/testdata/page-1-html/index.html    | field |
+      | cookies | [{"name":"cookie_1","value":"foo","domain":"host.docker.internal:%d"}] | field |
+    Then the response status code should be 200
+    Then the server request cookie "cookie_1" should be "foo"
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url | http://host.docker.internal:%d/html/testdata/page-1-html/index.html | field |
+    Then the response status code should be 200
+    Then the server request cookie "cookie_1" should be "foo"
 
   # See https://github.com/gotenberg/gotenberg/issues/1130.
   Scenario: POST /forms/chromium/convert/url (case-insensitive sameSite)
@@ -476,7 +560,127 @@ Feature: /forms/chromium/convert/url
     Then there should be 1 PDF(s) in the response
     Then the Gotenberg container should NOT log the following entries:
       # Modern browsers block file URIs from being loaded into iframes when the parent page is served over HTTP/HTTPS.
-      | 'file:///etc/passwd' does not match the expression from the allowed list |
+      | 'file:///etc/passwd' does not match any expression from the allowed list |
+
+  Scenario: POST /forms/chromium/convert/url (file:// scheme rejected at route layer)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url | file:///tmp/foo/index.html | field |
+    Then the response status code should be 400
+    Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
+    Then the response body should match string:
+      """
+      file:// URLs are not accepted on this route. Use the /convert/html or /convert/markdown routes to render local HTML
+      """
+
+  # devtools:// pages expose privileged bindings such as InspectorFrontendHost,
+  # so evaluating waitForExpression there could read local files. chrome://
+  # pages can crash or restart the browser. Only http(s) URLs are accepted.
+  Scenario Outline: POST /forms/chromium/convert/url (non-http(s) scheme rejected at route layer)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url               | <url>                    | field |
+      | waitForExpression | window.foo === undefined | field |
+    Then the response status code should be 400
+    Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
+    Then the response body should match string:
+      """
+      Invalid form data: form field 'url' must be an http:// or https:// URL
+      """
+
+    Examples:
+      | url                                           |
+      | devtools://devtools/bundled/devtools_app.html |
+      | DEVTOOLS://devtools/bundled/devtools_app.html |
+      | chrome://version                              |
+      | chrome-untrusted://terminal/                  |
+      | view-source:https://example.com               |
+      | javascript:alert(1)                           |
+      | data:text/html,foo                            |
+
+  Scenario: POST /forms/chromium/convert/url (Main URL resolves to a non-public IP, permissive default)
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_ALLOW_LIST |  |
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url | http://host.docker.internal:%d/html/testdata/page-1-html/index.html | field |
+    Then the response status code should be 200
+    Then the response header "Content-Type" should be "application/pdf"
+    Then there should be 1 PDF(s) in the response
+
+  @chromium-ssrf
+  Scenario: POST /forms/chromium/convert/url (Main URL is a non-public IP literal, deny-private-ips on)
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_ALLOW_LIST       |      |
+      | CHROMIUM_DENY_PRIVATE_IPS | true |
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url | http://127.0.0.1/ | field |
+    Then the response status code should be 403
+    Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
+    Then the response body should match string:
+      """
+      Forbidden
+      """
+
+  # IPv6 loopback literal is parsed as an IP and rejected by the IP-class check,
+  # like the IPv4 loopback literal above.
+  @chromium-ssrf
+  Scenario: POST /forms/chromium/convert/url (Main URL is an IPv6 loopback literal, deny-private-ips on)
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_ALLOW_LIST       |      |
+      | CHROMIUM_DENY_PRIVATE_IPS | true |
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url | http://[::1]/ | field |
+    Then the response status code should be 403
+    Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
+    Then the response body should match string:
+      """
+      Forbidden
+      """
+
+  # An alternate IP encoding (decimal for 127.0.0.1) that Chromium would read
+  # as loopback but the resolver rejects as a hostname. It must fail closed as
+  # filtered (a generic 403), not surface as a 500.
+  @chromium-ssrf
+  Scenario: POST /forms/chromium/convert/url (Main URL is a decimal-encoded loopback IP, deny-private-ips on)
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_ALLOW_LIST       |      |
+      | CHROMIUM_DENY_PRIVATE_IPS | true |
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url | http://2130706433/ | field |
+    Then the response status code should be 403
+    Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
+    Then the response body should match string:
+      """
+      Forbidden
+      """
+
+  # A classic SSRF vector: an allow-listed URL that redirects to an internal
+  # address. The redirected request must not inherit the initial URL's
+  # allow-list pass. listenForEventRequestPaused re-validates it; it does not
+  # match the allow-list, so it is blocked (Chromium reports ERR_ACCESS_DENIED
+  # and the conversion renders the resulting error page).
+  @chromium-ssrf
+  Scenario: POST /forms/chromium/convert/url (Redirect to a non-allow-listed address is re-filtered)
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_ALLOW_LIST | ^https?://host\\.docker\\.internal(:[0-9]+)?/ |
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url | http://host.docker.internal:%d/redirect-to-private | field |
+    Then the response status code should be 200
+    Then the Gotenberg container should log the following entries:
+      | 'http://127.0.0.1:9999/redirected' does not match any expression from the allowed list |
+
+  Scenario: POST /forms/chromium/convert/url (Main URL resolves to a non-public IP, deny-private-ips on with allow-list bypass)
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_ALLOW_LIST       | .+   |
+      | CHROMIUM_DENY_PRIVATE_IPS | true |
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url | http://host.docker.internal:%d/html/testdata/page-1-html/index.html | field |
+    Then the response status code should be 200
+    Then the response header "Content-Type" should be "application/pdf"
+    Then there should be 1 PDF(s) in the response
 
   Scenario: POST /forms/chromium/convert/url (JavaScript Enabled)
     Given I have a default Gotenberg container
@@ -519,6 +723,7 @@ Feature: /forms/chromium/convert/url
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
       | url                           | http://host.docker.internal:%d/html/testdata/feature-rich-html-remote/index.html | field |
       | failOnResourceHttpStatusCodes | [499,599]                                                                        | field |
+      | skipNetworkIdleEvent          | false                                                                            | field |
     Then the response status code should be 409
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should contain string:
@@ -531,7 +736,11 @@ Feature: /forms/chromium/convert/url
       """
 
   Scenario: POST /forms/chromium/convert/url (Fail On Resource Loading Failed)
-    Given I have a default Gotenberg container
+    # A configured allow-list routes loopback through the pinning proxy, which
+    # reports a refused connection as a reset. See the convert/html
+    # scenario.
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_ALLOW_LIST |  |
     Given I have a static server
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
       | url                         | http://host.docker.internal:%d/html/testdata/feature-rich-html-remote/index.html | field |
@@ -568,6 +777,34 @@ Feature: /forms/chromium/convert/url
       Error: Exception 2
       """
 
+  Scenario: POST /forms/chromium/convert/url (Fail On Console Message Types)
+    Given I have a default Gotenberg container
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url                       | http://host.docker.internal:%d/html/testdata/feature-rich-html-remote/index.html | field |
+      | failOnConsoleMessageTypes | ["error","warning"]                                                              | field |
+    Then the response status code should be 409
+    Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
+    Then the response body should match string:
+      """
+      Chromium console messages:
+      [warning] a warning message
+      [error] an error message
+      """
+
+  Scenario: POST /forms/chromium/convert/url (Fail On Console Message Types - Unknown Type)
+    Given I have a default Gotenberg container
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url                       | http://host.docker.internal:%d/html/testdata/feature-rich-html-remote/index.html | field |
+      | failOnConsoleMessageTypes | ["warn"]                                                                         | field |
+    Then the response status code should be 400
+    Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
+    Then the response body should match string:
+      """
+      Invalid form data: form field 'failOnConsoleMessageTypes' is invalid (got '["warn"]', resulting to unknown console message type 'warn', expected one or more of: log, debug, info, warning, error, assert)
+      """
+
   Scenario: POST /forms/chromium/convert/url (Bad Request)
     Given I have a default Gotenberg container
     Given I have a static server
@@ -592,12 +829,37 @@ Feature: /forms/chromium/convert/url
       | failOnResourceHttpStatusCodes | foo | field |
       | failOnResourceLoadingFailed   | foo | field |
       | failOnConsoleExceptions       | foo | field |
+      | failOnConsoleMessageTypes     | foo | field |
       | skipNetworkIdleEvent          | foo | field |
+      | skipNetworkAlmostIdleEvent    | foo | field |
     Then the response status code should be 400
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      Invalid form data: form field 'skipNetworkIdleEvent' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'failOnHttpStatusCodes' is invalid (got 'foo', resulting to unmarshal failOnHttpStatusCodes: invalid character 'o' in literal false (expecting 'a')); form field 'failOnResourceHttpStatusCodes' is invalid (got 'foo', resulting to unmarshal failOnResourceHttpStatusCodes: invalid character 'o' in literal false (expecting 'a')); form field 'failOnResourceLoadingFailed' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'failOnConsoleExceptions' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'waitDelay' is invalid (got 'foo', resulting to time: invalid duration "foo"); form field 'emulatedMediaType' is invalid (got 'foo', resulting to wrong value, expected either 'screen', 'print' or empty); form field 'omitBackground' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'landscape' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'printBackground' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'scale' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'singlePage' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'paperWidth' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'paperHeight' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'marginTop' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'marginBottom' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'marginLeft' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'marginRight' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'preferCssPageSize' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'generateDocumentOutline' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'generateTaggedPdf' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'url' is required
+      Invalid form data: form field 'skipNetworkIdleEvent' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'skipNetworkAlmostIdleEvent' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'failOnHttpStatusCodes' is invalid (got 'foo', resulting to unmarshal failOnHttpStatusCodes: invalid character 'o' in literal false (expecting 'a'))
+      form field 'failOnResourceHttpStatusCodes' is invalid (got 'foo', resulting to unmarshal failOnResourceHttpStatusCodes: invalid character 'o' in literal false (expecting 'a'))
+      form field 'failOnResourceLoadingFailed' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'failOnConsoleExceptions' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'failOnConsoleMessageTypes' is invalid (got 'foo', resulting to unmarshal failOnConsoleMessageTypes: invalid character 'o' in literal false (expecting 'a'))
+      form field 'waitDelay' is invalid (got 'foo', resulting to time: invalid duration "foo")
+      form field 'emulatedMediaType' is invalid (got 'foo', resulting to wrong value, expected either 'screen', 'print' or empty)
+      form field 'omitBackground' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'landscape' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'printBackground' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'scale' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'singlePage' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'paperWidth' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'paperHeight' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'marginTop' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'marginBottom' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'marginLeft' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'marginRight' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'preferCssPageSize' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'generateDocumentOutline' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'generateTaggedPdf' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'url' is required
       """
     Given I have a static server
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
@@ -747,7 +1009,7 @@ Feature: /forms/chromium/convert/url
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      At least one PDF engine cannot process the requested PDF split mode, while others may have failed to split due to different issues
+      The requested split mode is not supported, or no PDF engine could process it. Valid modes: 'intervals', 'pages'.
       """
     Given I have a static server
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
@@ -757,7 +1019,7 @@ Feature: /forms/chromium/convert/url
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      At least one PDF engine cannot process the requested PDF format, while others may have failed to convert due to different issues
+      The requested PDF format is not supported, or no PDF engine could apply it. Valid formats include PDF/A-1b, PDF/A-2b, PDF/A-3b, PDF/A-4, and PDF/UA.
       """
     Given I have a static server
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
@@ -1107,12 +1369,12 @@ Feature: /forms/chromium/convert/url
   @metadata
   @flatten
   @embed
-  Scenario: POST /forms/chromium/convert/url (PDF/A-1b & PDF/UA-1 & Metadata & Flatten)
+  Scenario: POST /forms/chromium/convert/url (PDF/A-3b & PDF/UA-1 & Metadata & Flatten & Embeds)
     Given I have a default Gotenberg container
     Given I have a static server
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
       | url                       | http://host.docker.internal:%d/html/testdata/page-1-html/index.html                                                                                                                                                                                                                                       | field  |
-      | pdfa                      | PDF/A-1b                                                                                                                                                                                                                                                                                                  | field  |
+      | pdfa                      | PDF/A-3b                                                                                                                                                                                                                                                                                                  | field  |
       | pdfua                     | true                                                                                                                                                                                                                                                                                                      | field  |
       | metadata                  | {"Author":"Julien Neuhart","Copyright":"Julien Neuhart","CreateDate":"2006-09-18T16:27:50-04:00","Creator":"Gotenberg","Keywords":["first","second"],"Marked":true,"ModDate":"2006-09-18T16:27:50-04:00","PDFVersion":1.7,"Producer":"Gotenberg","Subject":"Sample","Title":"Sample","Trapped":"Unknown"} | field  |
       | flatten                   | true                                                                                                                                                                                                                                                                                                      | field  |
@@ -1124,8 +1386,8 @@ Feature: /forms/chromium/convert/url
     Then there should be 1 PDF(s) in the response
     Then there should be the following file(s) in the response:
       | foo.pdf |
-    Then the response PDF(s) should be valid "PDF/A-1b" with a tolerance of 9 failed rule(s)
-    Then the response PDF(s) should be valid "PDF/UA-1" with a tolerance of 2 failed rule(s)
+    Then the response PDF(s) should be valid "PDF/A-3b" with a tolerance of 5 failed rule(s)
+    Then the response PDF(s) should be valid "PDF/UA-1" with a tolerance of 3 failed rule(s)
     Then the response PDF(s) should be flatten
     Then the response PDF(s) should have the "embed_1.xml" file embedded
     Then the response PDF(s) should have the "embed_2.xml" file embedded
@@ -1139,11 +1401,8 @@ Feature: /forms/chromium/convert/url
         "foo.pdf": {
           "Author": "Julien Neuhart",
           "Copyright": "Julien Neuhart",
-          "CreateDate": "2006:09:18 16:27:50-04:00",
           "Creator": "Gotenberg",
-          "Keywords": ["first", "second"],
           "Marked": true,
-          "ModDate": "2006:09:18 16:27:50-04:00",
           "PDFVersion": 1.7,
           "Producer": "Gotenberg",
           "Subject": "Sample",
@@ -1171,7 +1430,7 @@ Feature: /forms/chromium/convert/url
     Then the response header "Content-Type" should be "application/pdf"
     Then the response header "Gotenberg-Trace" should be "forms_chromium_convert_url"
     Then the Gotenberg container should log the following entries:
-      | "trace":"forms_chromium_convert_url" |
+      | "correlation_id":"forms_chromium_convert_url" |
 
   @webhook
   Scenario: POST /forms/chromium/convert/url (Webhook)
@@ -1213,3 +1472,41 @@ Feature: /forms/chromium/convert/url
       | url | http://host.docker.internal:%d/html/testdata/page-1-html/index.html | field |
     Then the response status code should be 200
     Then the response header "Content-Type" should be "application/pdf"
+
+  Scenario: POST /forms/chromium/convert/url (stampSource=pdf without uploaded stamp file => 400)
+    Given I have a default Gotenberg container
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url             | http://host.docker.internal:%d/html/testdata/page-1-html/index.html | field |
+      | stampSource     | pdf                                                                 | field |
+      | stampExpression | /etc/hostname                                                       | field |
+    Then the response status code should be 400
+    Then the response body should match string:
+      """
+      Invalid form data: a stamp file is required for image or pdf source
+      """
+
+  Scenario: POST /forms/chromium/convert/url (watermarkSource=pdf without uploaded watermark file => 400)
+    Given I have a default Gotenberg container
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url                 | http://host.docker.internal:%d/html/testdata/page-1-html/index.html | field |
+      | watermarkSource     | pdf                                                                 | field |
+      | watermarkExpression | /etc/hostname                                                       | field |
+    Then the response status code should be 400
+    Then the response body should match string:
+      """
+      Invalid form data: a watermark file is required for image or pdf source
+      """
+
+  # See: https://github.com/gotenberg/gotenberg/issues/1500.
+  Scenario: POST /forms/chromium/convert/url (Long Filename)
+    Given I have a default Gotenberg container
+    Given I have a static server
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/url" endpoint with the following form data and header(s):
+      | url                       | http://host.docker.internal:%d/html/testdata/page-1-html/index.html | field  |
+      | Gotenberg-Output-Filename | foo                                                                 | header |
+    Then the response status code should be 200
+    Then the response header "Content-Type" should be "application/pdf"
+    Then there should be 1 PDF(s) in the response
+    Then the "foo.pdf" PDF should have 1 page(s)

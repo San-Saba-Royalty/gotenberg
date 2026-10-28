@@ -49,7 +49,7 @@ Feature: /forms/pdfengines/flatten
     Then the response header "Content-Type" should be "application/pdf"
     Then the response header "Gotenberg-Trace" should be "forms_pdfengines_flatten"
     Then the Gotenberg container should log the following entries:
-      | "trace":"forms_pdfengines_flatten" |
+      | "correlation_id":"forms_pdfengines_flatten" |
 
   @output-filename
   Scenario: POST /forms/pdfengines/flatten (Output Filename - Single PDF)
@@ -118,3 +118,14 @@ Feature: /forms/pdfengines/flatten
       | files | testdata/page_1.pdf | file |
     Then the response status code should be 200
     Then the response header "Content-Type" should be "application/pdf"
+
+  # See: https://github.com/gotenberg/gotenberg/issues/1500.
+  Scenario: POST /forms/pdfengines/flatten (Long Filename)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/pdfengines/flatten" endpoint with the following form data and header(s):
+      | files                     | testdata/Longitudinell_jämförelse_mellan_laserkirurgi_och_strålbehandling_gällande_röstkvalitet_och_självskattad_kommunikation_upp_till_två_år_efter_tidig_stämbandscancer_i_ett_randomiserat_kontrollerat_försök.pdf | file   |
+      | Gotenberg-Output-Filename | foo                                                                                                                                                                                                                   | header |
+    Then the response status code should be 200
+    Then the response header "Content-Type" should be "application/pdf"
+    Then there should be 1 PDF(s) in the response
+    Then the response PDF(s) should be flatten

@@ -3,25 +3,24 @@ package api
 import (
 	"context"
 	"errors"
-
-	"go.uber.org/zap"
+	"log/slog"
 
 	"github.com/gotenberg/gotenberg/v8/pkg/gotenberg"
 )
 
 // ApiMock is a mock for the [Uno] interface.
 type ApiMock struct {
-	PdfMock        func(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error
-	DocxMock       func(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error
+	PdfMock        func(ctx context.Context, logger *slog.Logger, inputPath, outputPath string, options Options) error
+	DocxMock       func(ctx context.Context, logger *slog.Logger, inputPath, outputPath string) error
 	ExtensionsMock func() []string
 }
 
-func (api *ApiMock) Pdf(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error {
+func (api *ApiMock) Pdf(ctx context.Context, logger *slog.Logger, inputPath, outputPath string, options Options) error {
 	return api.PdfMock(ctx, logger, inputPath, outputPath, options)
 }
 
 // Docx converts a document to DOCX using the mock implementation.
-func (api *ApiMock) Docx(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error {
+func (api *ApiMock) Docx(ctx context.Context, logger *slog.Logger, inputPath, outputPath string) error {
 	return api.DocxMock(ctx, logger, inputPath, outputPath)
 }
 
@@ -43,11 +42,11 @@ type libreOfficeMock struct {
 	errCoreDumpedCount int
 
 	gotenberg.ProcessMock
-	pdfMock  func(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error
-	docxMock func(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error
+	pdfMock  func(ctx context.Context, logger *slog.Logger, inputPath, outputPath string, options Options) error
+	docxMock func(ctx context.Context, logger *slog.Logger, inputPath, outputPath string) error
 }
 
-func (b *libreOfficeMock) pdf(ctx context.Context, logger *zap.Logger, inputPath, outputPath string, options Options) error {
+func (b *libreOfficeMock) pdf(ctx context.Context, logger *slog.Logger, inputPath, outputPath string, options Options) error {
 	err := b.pdfMock(ctx, logger, inputPath, outputPath, options)
 	if errors.Is(err, ErrCoreDumped) {
 		b.errCoreDumpedCount += 1
@@ -58,7 +57,7 @@ func (b *libreOfficeMock) pdf(ctx context.Context, logger *zap.Logger, inputPath
 	return err
 }
 
-func (b *libreOfficeMock) docx(ctx context.Context, logger *zap.Logger, inputPath, outputPath string) error {
+func (b *libreOfficeMock) docx(ctx context.Context, logger *slog.Logger, inputPath, outputPath string) error {
 	if b.docxMock != nil {
 		return b.docxMock(ctx, logger, inputPath, outputPath)
 	}

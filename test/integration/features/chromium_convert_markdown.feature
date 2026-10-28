@@ -357,7 +357,7 @@ Feature: /forms/chromium/convert/markdown
     Then the response header "Content-Type" should be "application/pdf"
     Then there should be 1 PDF(s) in the response
     Then the Gotenberg container should log the following entries:
-      | 'file:///etc/passwd' does not match the expression from the allowed list |
+      | 'file:///etc/passwd' does not match any expression from the allowed list |
 
   Scenario: POST /forms/chromium/convert/markdown (JavaScript Enabled)
     Given I have a default Gotenberg container
@@ -400,6 +400,7 @@ Feature: /forms/chromium/convert/markdown
       | files                         | testdata/feature-rich-markdown/index.html | file  |
       | files                         | testdata/feature-rich-markdown/table.md   | file  |
       | failOnResourceHttpStatusCodes | [499,599]                                 | field |
+      | skipNetworkIdleEvent          | false                                     | field |
     Then the response status code should be 409
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
@@ -409,7 +410,11 @@ Feature: /forms/chromium/convert/markdown
       """
 
   Scenario: POST /forms/chromium/convert/markdown (Fail On Resource Loading Failed)
-    Given I have a default Gotenberg container
+    # A configured allow-list routes loopback through the pinning proxy, which
+    # reports a refused connection as a reset. See the convert/html
+    # scenario.
+    Given I have a Gotenberg container with the following environment variable(s):
+      | CHROMIUM_ALLOW_LIST |  |
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
       | files                       | testdata/feature-rich-markdown/index.html | file  |
       | files                       | testdata/feature-rich-markdown/table.md   | file  |
@@ -450,6 +455,34 @@ Feature: /forms/chromium/convert/markdown
       Error: Exception 2
       """
 
+  Scenario: POST /forms/chromium/convert/markdown (Fail On Console Message Types)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
+      | files                     | testdata/feature-rich-markdown/index.html | file  |
+      | files                     | testdata/feature-rich-markdown/table.md   | file  |
+      | failOnConsoleMessageTypes | ["error","warning"]                       | field |
+    Then the response status code should be 409
+    Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
+    Then the response body should match string:
+      """
+      Chromium console messages:
+      [warning] a warning message
+      [error] an error message
+      """
+
+  Scenario: POST /forms/chromium/convert/markdown (Fail On Console Message Types - Unknown Type)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
+      | files                     | testdata/feature-rich-markdown/index.html | file  |
+      | files                     | testdata/feature-rich-markdown/table.md   | file  |
+      | failOnConsoleMessageTypes | ["warn"]                                  | field |
+    Then the response status code should be 400
+    Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
+    Then the response body should match string:
+      """
+      Invalid form data: form field 'failOnConsoleMessageTypes' is invalid (got '["warn"]', resulting to unknown console message type 'warn', expected one or more of: log, debug, info, warning, error, assert)
+      """
+
   Scenario: POST /forms/chromium/convert/markdown (Bad Request)
     Given I have a default Gotenberg container
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
@@ -459,7 +492,8 @@ Feature: /forms/chromium/convert/markdown
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      Markdown file(s) not found: 'page_2.md'; 'page_3.md'
+      Markdown file(s) not found: 'page_2.md'
+      'page_3.md'
       """
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
       | singlePage                    | foo | field |
@@ -482,12 +516,38 @@ Feature: /forms/chromium/convert/markdown
       | failOnResourceHttpStatusCodes | foo | field |
       | failOnResourceLoadingFailed   | foo | field |
       | failOnConsoleExceptions       | foo | field |
+      | failOnConsoleMessageTypes     | foo | field |
       | skipNetworkIdleEvent          | foo | field |
+      | skipNetworkAlmostIdleEvent    | foo | field |
     Then the response status code should be 400
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      Invalid form data: form field 'skipNetworkIdleEvent' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'failOnHttpStatusCodes' is invalid (got 'foo', resulting to unmarshal failOnHttpStatusCodes: invalid character 'o' in literal false (expecting 'a')); form field 'failOnResourceHttpStatusCodes' is invalid (got 'foo', resulting to unmarshal failOnResourceHttpStatusCodes: invalid character 'o' in literal false (expecting 'a')); form field 'failOnResourceLoadingFailed' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'failOnConsoleExceptions' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'waitDelay' is invalid (got 'foo', resulting to time: invalid duration "foo"); form field 'emulatedMediaType' is invalid (got 'foo', resulting to wrong value, expected either 'screen', 'print' or empty); form field 'omitBackground' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'landscape' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'printBackground' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'scale' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'singlePage' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'paperWidth' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'paperHeight' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'marginTop' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'marginBottom' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'marginLeft' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'marginRight' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax); form field 'preferCssPageSize' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'generateDocumentOutline' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form field 'generateTaggedPdf' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax); form file 'index.html' is required; no form file found for extensions: [.md]
+      Invalid form data: form field 'skipNetworkIdleEvent' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'skipNetworkAlmostIdleEvent' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'failOnHttpStatusCodes' is invalid (got 'foo', resulting to unmarshal failOnHttpStatusCodes: invalid character 'o' in literal false (expecting 'a'))
+      form field 'failOnResourceHttpStatusCodes' is invalid (got 'foo', resulting to unmarshal failOnResourceHttpStatusCodes: invalid character 'o' in literal false (expecting 'a'))
+      form field 'failOnResourceLoadingFailed' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'failOnConsoleExceptions' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'failOnConsoleMessageTypes' is invalid (got 'foo', resulting to unmarshal failOnConsoleMessageTypes: invalid character 'o' in literal false (expecting 'a'))
+      form field 'waitDelay' is invalid (got 'foo', resulting to time: invalid duration "foo")
+      form field 'emulatedMediaType' is invalid (got 'foo', resulting to wrong value, expected either 'screen', 'print' or empty)
+      form field 'omitBackground' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'landscape' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'printBackground' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'scale' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'singlePage' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'paperWidth' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'paperHeight' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'marginTop' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'marginBottom' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'marginLeft' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'marginRight' is invalid (got 'foo', resulting to strconv.ParseFloat: parsing "foo": invalid syntax)
+      form field 'preferCssPageSize' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'generateDocumentOutline' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form field 'generateTaggedPdf' is invalid (got 'foo', resulting to strconv.ParseBool: parsing "foo": invalid syntax)
+      form file 'index.html' is required
+      no form file found for extensions: [.md]
       """
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
       | files          | testdata/page-1-markdown/index.html | file  |
@@ -627,7 +687,7 @@ Feature: /forms/chromium/convert/markdown
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      At least one PDF engine cannot process the requested PDF split mode, while others may have failed to split due to different issues
+      The requested split mode is not supported, or no PDF engine could process it. Valid modes: 'intervals', 'pages'.
       """
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
       | files | testdata/page-1-markdown/index.html | file  |
@@ -637,7 +697,7 @@ Feature: /forms/chromium/convert/markdown
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      At least one PDF engine cannot process the requested PDF format, while others may have failed to convert due to different issues
+      The requested PDF format is not supported, or no PDF engine could apply it. Valid formats include PDF/A-1b, PDF/A-2b, PDF/A-3b, PDF/A-4, and PDF/UA.
       """
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
       | files | testdata/page-1-markdown/index.html | file  |
@@ -1012,12 +1072,12 @@ Feature: /forms/chromium/convert/markdown
   @metadata
   @flatten
   @embed
-  Scenario: POST /forms/chromium/convert/markdown (PDF/A-1b & PDF/UA-1 & Metadata & Flatten & Embeds)
+  Scenario: POST /forms/chromium/convert/markdown (PDF/A-3b & PDF/UA-1 & Metadata & Flatten & Embeds)
     Given I have a default Gotenberg container
     When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
       | files                     | testdata/page-1-markdown/index.html                                                                                                                                                                                                                                                                       | file   |
       | files                     | testdata/page-1-markdown/page_1.md                                                                                                                                                                                                                                                                        | file   |
-      | pdfa                      | PDF/A-1b                                                                                                                                                                                                                                                                                                  | field  |
+      | pdfa                      | PDF/A-3b                                                                                                                                                                                                                                                                                                  | field  |
       | pdfua                     | true                                                                                                                                                                                                                                                                                                      | field  |
       | metadata                  | {"Author":"Julien Neuhart","Copyright":"Julien Neuhart","CreateDate":"2006-09-18T16:27:50-04:00","Creator":"Gotenberg","Keywords":["first","second"],"Marked":true,"ModDate":"2006-09-18T16:27:50-04:00","PDFVersion":1.7,"Producer":"Gotenberg","Subject":"Sample","Title":"Sample","Trapped":"Unknown"} | field  |
       | flatten                   | true                                                                                                                                                                                                                                                                                                      | field  |
@@ -1029,8 +1089,8 @@ Feature: /forms/chromium/convert/markdown
     Then there should be 1 PDF(s) in the response
     Then there should be the following file(s) in the response:
       | foo.pdf |
-    Then the response PDF(s) should be valid "PDF/A-1b" with a tolerance of 9 failed rule(s)
-    Then the response PDF(s) should be valid "PDF/UA-1" with a tolerance of 2 failed rule(s)
+    Then the response PDF(s) should be valid "PDF/A-3b" with a tolerance of 5 failed rule(s)
+    Then the response PDF(s) should be valid "PDF/UA-1" with a tolerance of 3 failed rule(s)
     Then the response PDF(s) should be flatten
     Then the response PDF(s) should have the "embed_1.xml" file embedded
     Then the response PDF(s) should have the "embed_2.xml" file embedded
@@ -1044,11 +1104,8 @@ Feature: /forms/chromium/convert/markdown
         "foo.pdf": {
           "Author": "Julien Neuhart",
           "Copyright": "Julien Neuhart",
-          "CreateDate": "2006:09:18 16:27:50-04:00",
           "Creator": "Gotenberg",
-          "Keywords": ["first", "second"],
           "Marked": true,
-          "ModDate": "2006:09:18 16:27:50-04:00",
           "PDFVersion": 1.7,
           "Producer": "Gotenberg",
           "Subject": "Sample",
@@ -1076,7 +1133,7 @@ Feature: /forms/chromium/convert/markdown
     Then the response header "Content-Type" should be "application/pdf"
     Then the response header "Gotenberg-Trace" should be "forms_chromium_convert_html"
     Then the Gotenberg container should log the following entries:
-      | "trace":"forms_chromium_convert_html" |
+      | "correlation_id":"forms_chromium_convert_html" |
 
   @download-from
   Scenario: POST /forms/chromium/convert/markdown (Download From)
@@ -1130,3 +1187,41 @@ Feature: /forms/chromium/convert/markdown
       | files | testdata/page-1-markdown/page_1.md  | file |
     Then the response status code should be 200
     Then the response header "Content-Type" should be "application/pdf"
+
+  Scenario: POST /forms/chromium/convert/markdown (stampSource=pdf without uploaded stamp file => 400)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
+      | files           | testdata/page-1-markdown/index.html | file  |
+      | files           | testdata/page-1-markdown/page_1.md  | file  |
+      | stampSource     | pdf                                 | field |
+      | stampExpression | /etc/hostname                       | field |
+    Then the response status code should be 400
+    Then the response body should match string:
+      """
+      Invalid form data: a stamp file is required for image or pdf source
+      """
+
+  Scenario: POST /forms/chromium/convert/markdown (watermarkSource=pdf without uploaded watermark file => 400)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
+      | files               | testdata/page-1-markdown/index.html | file  |
+      | files               | testdata/page-1-markdown/page_1.md  | file  |
+      | watermarkSource     | pdf                                 | field |
+      | watermarkExpression | /etc/hostname                       | field |
+    Then the response status code should be 400
+    Then the response body should match string:
+      """
+      Invalid form data: a watermark file is required for image or pdf source
+      """
+
+  # See: https://github.com/gotenberg/gotenberg/issues/1500.
+  Scenario: POST /forms/chromium/convert/markdown (Long Filename)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/chromium/convert/markdown" endpoint with the following form data and header(s):
+      | files                     | testdata/page-1-markdown/index.html | file   |
+      | files                     | testdata/page-1-markdown/page_1.md  | file   |
+      | Gotenberg-Output-Filename | foo                                 | header |
+    Then the response status code should be 200
+    Then the response header "Content-Type" should be "application/pdf"
+    Then there should be 1 PDF(s) in the response
+    Then the "foo.pdf" PDF should have 1 page(s)

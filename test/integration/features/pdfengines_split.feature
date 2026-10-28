@@ -251,7 +251,9 @@ Feature: /forms/pdfengines/split
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      Invalid form data: form field 'splitMode' is required; form field 'splitSpan' is required; no form file found for extensions: [.pdf]
+      Invalid form data: form field 'splitMode' is required
+      form field 'splitSpan' is required
+      no form file found for extensions: [.pdf]
       """
     When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
       | files     | testdata/pages_3.pdf | file  |
@@ -281,7 +283,7 @@ Feature: /forms/pdfengines/split
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      At least one PDF engine cannot process the requested PDF split mode, while others may have failed to split due to different issues
+      The requested split mode is not supported, or no PDF engine could process it. Valid modes: 'intervals', 'pages'.
       """
     When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
       | files     | testdata/pages_3.pdf | file  |
@@ -292,7 +294,7 @@ Feature: /forms/pdfengines/split
     Then the response header "Content-Type" should be "text/plain; charset=UTF-8"
     Then the response body should match string:
       """
-      At least one PDF engine cannot process the requested PDF format, while others may have failed to convert due to different issues
+      The requested PDF format is not supported, or no PDF engine could apply it. Valid formats include PDF/A-1b, PDF/A-2b, PDF/A-3b, PDF/A-4, and PDF/UA.
       """
     When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
       | files     | testdata/pages_3.pdf | file  |
@@ -473,6 +475,44 @@ Feature: /forms/pdfengines/split
     Then there should be 2 PDF(s) in the response
     Then the response PDF(s) should be encrypted
 
+  @watermark
+  Scenario: POST /forms/pdfengines/split (Watermark - Text)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
+      | files               | testdata/pages_3.pdf | file  |
+      | splitMode           | intervals            | field |
+      | splitSpan           | 2                    | field |
+      | watermarkSource     | text                 | field |
+      | watermarkExpression | CONFIDENTIAL         | field |
+    Then the response status code should be 200
+    Then the response header "Content-Type" should be "application/zip"
+    Then there should be 2 PDF(s) in the response
+
+  @stamp
+  Scenario: POST /forms/pdfengines/split (Stamp - Text)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
+      | files           | testdata/pages_3.pdf | file  |
+      | splitMode       | intervals            | field |
+      | splitSpan       | 2                    | field |
+      | stampSource     | text                 | field |
+      | stampExpression | DRAFT                | field |
+    Then the response status code should be 200
+    Then the response header "Content-Type" should be "application/zip"
+    Then there should be 2 PDF(s) in the response
+
+  @rotate
+  Scenario: POST /forms/pdfengines/split (Rotate 90)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
+      | files       | testdata/pages_3.pdf | file  |
+      | splitMode   | intervals            | field |
+      | splitSpan   | 2                    | field |
+      | rotateAngle | 90                   | field |
+    Then the response status code should be 200
+    Then the response header "Content-Type" should be "application/zip"
+    Then there should be 2 PDF(s) in the response
+
   @embed
   Scenario: POST /foo/forms/pdfengines/split (Embeds)
     Given I have a default Gotenberg container
@@ -494,20 +534,28 @@ Feature: /forms/pdfengines/split
   # FIXME: once decrypt is done, add encrypt and check after the content of the PDFs.
   @convert
   @metadata
+  @watermark
+  @stamp
+  @rotate
   @flatten
   @embed
-  Scenario: POST /forms/pdfengines/split (PDF/A-1b & PDF/UA-1 & Metadata & Flatten & Embeds)
+  Scenario: POST /forms/pdfengines/split (PDF/A-3b & PDF/UA-1 & Metadata & Watermark & Stamp & Rotate & Flatten & Embeds)
     Given I have a default Gotenberg container
     When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
-      | files     | testdata/pages_3.pdf                                                                                                                                                                                                                                                                                      | file  |
-      | splitMode | intervals                                                                                                                                                                                                                                                                                                 | field |
-      | splitSpan | 2                                                                                                                                                                                                                                                                                                         | field |
-      | pdfa      | PDF/A-1b                                                                                                                                                                                                                                                                                                  | field |
-      | pdfua     | true                                                                                                                                                                                                                                                                                                      | field |
-      | metadata  | {"Author":"Julien Neuhart","Copyright":"Julien Neuhart","CreateDate":"2006-09-18T16:27:50-04:00","Creator":"Gotenberg","Keywords":["first","second"],"Marked":true,"ModDate":"2006-09-18T16:27:50-04:00","PDFVersion":1.7,"Producer":"Gotenberg","Subject":"Sample","Title":"Sample","Trapped":"Unknown"} | field |
-      | flatten   | true                                                                                                                                                                                                                                                                                                      | field |
-      | embeds    | testdata/embed_1.xml                                                                                                                                                                                                                                                                                      | file  |
-      | embeds    | testdata/embed_2.xml                                                                                                                                                                                                                                                                                      | file  |
+      | files               | testdata/pages_3.pdf                                                                                                                                                                                                                                                                                      | file  |
+      | splitMode           | intervals                                                                                                                                                                                                                                                                                                 | field |
+      | splitSpan           | 2                                                                                                                                                                                                                                                                                                         | field |
+      | pdfa                | PDF/A-3b                                                                                                                                                                                                                                                                                                  | field |
+      | pdfua               | true                                                                                                                                                                                                                                                                                                      | field |
+      | metadata            | {"Author":"Julien Neuhart","Copyright":"Julien Neuhart","CreateDate":"2006-09-18T16:27:50-04:00","Creator":"Gotenberg","Keywords":["first","second"],"Marked":true,"ModDate":"2006-09-18T16:27:50-04:00","PDFVersion":1.7,"Producer":"Gotenberg","Subject":"Sample","Title":"Sample","Trapped":"Unknown"} | field |
+      | watermarkSource     | text                                                                                                                                                                                                                                                                                                      | field |
+      | watermarkExpression | CONFIDENTIAL                                                                                                                                                                                                                                                                                              | field |
+      | stampSource         | text                                                                                                                                                                                                                                                                                                      | field |
+      | stampExpression     | DRAFT                                                                                                                                                                                                                                                                                                     | field |
+      | rotateAngle         | 90                                                                                                                                                                                                                                                                                                        | field |
+      | flatten             | true                                                                                                                                                                                                                                                                                                      | field |
+      | embeds              | testdata/embed_1.xml                                                                                                                                                                                                                                                                                      | file  |
+      | embeds              | testdata/embed_2.xml                                                                                                                                                                                                                                                                                      | file  |
     Then the response status code should be 200
     Then the response header "Content-Type" should be "application/zip"
     Then there should be 2 PDF(s) in the response
@@ -528,8 +576,8 @@ Feature: /forms/pdfengines/split
       """
       Page 3
       """
-    Then the response PDF(s) should be valid "PDF/A-1b" with a tolerance of 10 failed rule(s)
-    Then the response PDF(s) should be valid "PDF/UA-1" with a tolerance of 2 failed rule(s)
+    Then the response PDF(s) should be valid "PDF/A-3b" with a tolerance of 5 failed rule(s)
+    Then the response PDF(s) should be valid "PDF/UA-1" with a tolerance of 3 failed rule(s)
     Then the response PDF(s) should be flatten
     Then the response PDF(s) should have the "embed_1.xml" file embedded
     Then the response PDF(s) should have the "embed_2.xml" file embedded
@@ -544,11 +592,8 @@ Feature: /forms/pdfengines/split
         "pages_3_0.pdf": {
           "Author": "Julien Neuhart",
           "Copyright": "Julien Neuhart",
-          "CreateDate": "2006:09:18 16:27:50-04:00",
           "Creator": "Gotenberg",
-          "Keywords": ["first", "second"],
           "Marked": true,
-          "ModDate": "2006:09:18 16:27:50-04:00",
           "PDFVersion": 1.7,
           "Producer": "Gotenberg",
           "Subject": "Sample",
@@ -558,11 +603,8 @@ Feature: /forms/pdfengines/split
         "pages_3_1.pdf": {
           "Author": "Julien Neuhart",
           "Copyright": "Julien Neuhart",
-          "CreateDate": "2006:09:18 16:27:50-04:00",
           "Creator": "Gotenberg",
-          "Keywords": ["first", "second"],
           "Marked": true,
-          "ModDate": "2006:09:18 16:27:50-04:00",
           "PDFVersion": 1.7,
           "Producer": "Gotenberg",
           "Subject": "Sample",
@@ -592,7 +634,7 @@ Feature: /forms/pdfengines/split
     Then the response header "Content-Type" should be "application/zip"
     Then the response header "Gotenberg-Trace" should be "forms_pdfengines_split"
     Then the Gotenberg container should log the following entries:
-      | "trace":"forms_pdfengines_split" |
+      | "correlation_id":"forms_pdfengines_split" |
 
   @output-filename
   Scenario: POST /forms/pdfengines/split (Output Filename - Single PDF)
@@ -688,3 +730,80 @@ Feature: /forms/pdfengines/split
       | splitSpan | 2                    | field |
     Then the response status code should be 200
     Then the response header "Content-Type" should be "application/zip"
+
+  @convert
+  @encrypt
+  Scenario: POST /forms/pdfengines/split (PDF/A + Encrypt => 400)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
+      | files        | testdata/pages_3.pdf | file  |
+      | splitMode    | intervals            | field |
+      | splitSpan    | 2                    | field |
+      | pdfa         | PDF/A-1b             | field |
+      | userPassword | secret               | field |
+    Then the response status code should be 400
+
+  @convert
+  @embed
+  Scenario: POST /forms/pdfengines/split (PDF/A-1b + Embeds => 400)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
+      | files     | testdata/pages_3.pdf | file  |
+      | splitMode | intervals            | field |
+      | splitSpan | 2                    | field |
+      | pdfa      | PDF/A-1b             | field |
+      | embeds    | testdata/embed_1.xml | file  |
+    Then the response status code should be 400
+
+  @convert
+  @embed
+  Scenario: POST /forms/pdfengines/split (PDF/A-3b + Embeds => 200)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
+      | files     | testdata/pages_3.pdf | file  |
+      | splitMode | intervals            | field |
+      | splitSpan | 2                    | field |
+      | pdfa      | PDF/A-3b             | field |
+      | embeds    | testdata/embed_1.xml | file  |
+    Then the response status code should be 200
+
+  Scenario: POST /forms/pdfengines/split (stampSource=pdf without uploaded stamp file => 400)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
+      | files           | testdata/pages_3.pdf | file  |
+      | splitMode       | intervals            | field |
+      | splitSpan       | 2                    | field |
+      | stampSource     | pdf                  | field |
+      | stampExpression | /etc/hostname        | field |
+    Then the response status code should be 400
+    Then the response body should match string:
+      """
+      Invalid form data: a stamp file is required for image or pdf source
+      """
+
+  Scenario: POST /forms/pdfengines/split (watermarkSource=pdf without uploaded watermark file => 400)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
+      | files               | testdata/pages_3.pdf | file  |
+      | splitMode           | intervals            | field |
+      | splitSpan           | 2                    | field |
+      | watermarkSource     | pdf                  | field |
+      | watermarkExpression | /etc/hostname        | field |
+    Then the response status code should be 400
+    Then the response body should match string:
+      """
+      Invalid form data: a watermark file is required for image or pdf source
+      """
+
+  # See: https://github.com/gotenberg/gotenberg/issues/1500.
+  Scenario: POST /forms/pdfengines/split (Long Filename)
+    Given I have a default Gotenberg container
+    When I make a "POST" request to Gotenberg at the "/forms/pdfengines/split" endpoint with the following form data and header(s):
+      | files                     | testdata/Longitudinell_jämförelse_mellan_laserkirurgi_och_strålbehandling_gällande_röstkvalitet_och_självskattad_kommunikation_upp_till_två_år_efter_tidig_stämbandscancer_i_ett_randomiserat_kontrollerat_försök.pdf | file   |
+      | splitMode                 | pages                                                                                                                                                                                                                 | field  |
+      | splitSpan                 | 1                                                                                                                                                                                                                     | field  |
+      | splitUnify                | true                                                                                                                                                                                                                  | field  |
+      | Gotenberg-Output-Filename | foo                                                                                                                                                                                                                   | header |
+    Then the response status code should be 200
+    Then the response header "Content-Type" should be "application/pdf"
+    Then there should be 1 PDF(s) in the response
